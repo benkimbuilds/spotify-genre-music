@@ -42,7 +42,6 @@ async function init() {
     }).then(r => r.json());
     if (res.count) {
       visitCount.textContent = `${res.count} explorers`;
-      visitCount.classList.remove('hidden');
     }
   } catch {}
 
@@ -56,7 +55,7 @@ async function init() {
 
     loadingScreen.classList.add('hidden');
     canvas.classList.remove('hidden');
-    logoutBtn.classList.remove('hidden');
+    document.getElementById('bottom-bar').classList.remove('hidden');
 
     initScene(canvas);
     renderGraph({ nodes, edges });

@@ -233,27 +233,45 @@ body {
 }
 #detail-close:hover { color: #fff; }
 
-#logout-btn {
+#bottom-bar {
   position: fixed;
-  bottom: 16px;
-  right: 16px;
-  padding: 8px 18px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  z-index: 50;
+  pointer-events: none;
+}
+#bottom-bar > * { pointer-events: auto; }
+
+#bottom-links {
+  display: flex;
+  gap: 16px;
+}
+#bottom-links a {
+  color: #555;
+  font-size: 12px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+#bottom-links a:hover { color: #aaa; }
+
+#visit-count {
+  color: #444;
+  font-size: 12px;
+}
+
+#logout-btn {
+  padding: 6px 16px;
   background: rgba(30, 30, 30, 0.9);
   border: 1px solid #333;
   border-radius: 20px;
   color: #999;
   font-size: 0.8rem;
   cursor: pointer;
-  z-index: 50;
   transition: color 0.2s, border-color 0.2s;
 }
 #logout-btn:hover { color: #fff; border-color: #666; }
-
-#visit-count {
-  position: fixed;
-  bottom: 20px;
-  right: 100px;
-  color: #555;
-  font-size: 12px;
-  z-index: 50;
-}
