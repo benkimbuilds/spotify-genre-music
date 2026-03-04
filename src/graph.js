@@ -1,13 +1,40 @@
 // src/graph.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-let scene, camera, renderer, controls;
+let scene, camera, renderer, labelRenderer, controls;
 let instancedMesh, edgeLines;
+let genreLabels = [];
 let nodesData = [];
 let raycaster, mouse;
 let hoveredIndex = -1;
 let audioEl = null;
+let cameraAnim = null;
+let onGenreClickCallback = null;
+let onTrackClickCallback = null;
+
+export function onGenreClick(callback) {
+  onGenreClickCallback = callback;
+}
+
+export function onTrackClick(callback) {
+  onTrackClickCallback = callback;
+}
+
+export function focusOnPoint(pos) {
+  const dir = new THREE.Vector3(pos.x, pos.y, pos.z).normalize();
+  const currentDist = camera.position.length();
+  const targetPos = dir.clone().multiplyScalar(currentDist);
+
+  cameraAnim = {
+    from: camera.position.clone(),
+    to: targetPos,
+    targetFrom: controls.target.clone(),
+    targetTo: new THREE.Vector3(0, 0, 0),
+    t: 0,
+  };
+}
 
 const tooltip = document.getElementById('tooltip');
 const trackDetail = document.getElementById('track-detail');
@@ -25,6 +52,7 @@ const color = new THREE.Color();
 export function initScene(canvas) {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0a0a);
+  scene.fog = new THREE.Fog(0x0a0a0a, 80, 200);
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
   camera.position.set(0, 0, 120);
@@ -32,6 +60,14 @@ export function initScene(canvas) {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0';
+  labelRenderer.domElement.style.left = '0';
+  labelRenderer.domElement.style.pointerEvents = 'none';
+  canvas.parentElement.appendChild(labelRenderer.domElement);
 
   controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
@@ -91,7 +127,7 @@ export function renderGraph({ nodes, edges }) {
     }
     const lineGeo = new THREE.BufferGeometry();
     lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.12, transparent: true });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.12, transparent: true, fog: true });
     edgeLines = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(edgeLines);
   }
@@ -99,8 +135,60 @@ export function renderGraph({ nodes, edges }) {
 
 function animate() {
   requestAnimationFrame(animate);
+
+  // Smooth camera animation
+  if (cameraAnim) {
+    cameraAnim.t += 0.02;
+    if (cameraAnim.t >= 1) {
+      camera.position.copy(cameraAnim.to);
+      controls.target.copy(cameraAnim.targetTo);
+      cameraAnim = null;
+    } else {
+      const t = easeInOut(cameraAnim.t);
+      camera.position.lerpVectors(cameraAnim.from, cameraAnim.to, t);
+      controls.target.lerpVectors(cameraAnim.targetFrom, cameraAnim.targetTo, t);
+    }
+    controls.update();
+  }
+
+  // Fade genre labels based on distance from camera (match fog)
+  for (const label of genreLabels) {
+    const dist = camera.position.distanceTo(label.position);
+    const opacity = 1 - THREE.MathUtils.smoothstep(dist, 80, 200);
+    label.element.style.opacity = opacity;
+  }
+
   controls.update();
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+export function focusOnGenre(anchorPos) {
+  const dir = new THREE.Vector3(anchorPos.x, anchorPos.y, anchorPos.z).normalize();
+  const currentDist = camera.position.length();
+  const targetPos = dir.clone().multiplyScalar(currentDist);
+
+  cameraAnim = {
+    from: camera.position.clone(),
+    to: targetPos,
+    targetFrom: controls.target.clone(),
+    targetTo: new THREE.Vector3(0, 0, 0),
+    t: 0,
+  };
+}
+
+export function resetCameraFocus() {
+  cameraAnim = {
+    from: camera.position.clone(),
+    to: new THREE.Vector3(0, 0, 120),
+    targetFrom: controls.target.clone(),
+    targetTo: new THREE.Vector3(0, 0, 0),
+    t: 0,
+  };
 }
 
 function onMouseMove(e) {
@@ -148,6 +236,10 @@ function onClick(e) {
     audioEl.volume = 0.5;
     audioEl.play().catch(() => {});
   }
+
+  // Focus on the track's position and open its genre
+  focusOnPoint(track);
+  if (onTrackClickCallback) onTrackClickCallback(track);
 }
 
 function setInstanceScale(index, scale) {
@@ -166,6 +258,42 @@ function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+export function renderGenreLabels(genreAnchors, genreColorMap) {
+  // Remove old labels
+  for (const label of genreLabels) scene.remove(label);
+  genreLabels = [];
+
+  for (const [genre, pos] of genreAnchors) {
+    if (genre === 'unknown') continue;
+    const div = document.createElement('div');
+    div.className = 'genre-label';
+    div.textContent = genre;
+    const colorHex = '#' + (genreColorMap.get(genre) || 0xffffff).toString(16).padStart(6, '0');
+    div.style.color = colorHex;
+
+    div.addEventListener('click', () => {
+      focusOnGenre(pos);
+      if (onGenreClickCallback) onGenreClickCallback(genre);
+    });
+
+    const label = new CSS2DObject(div);
+    const dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) || 1;
+    const labelScale = (dist + 8) / dist;
+    label.position.set(pos.x * labelScale, pos.y * labelScale, pos.z * labelScale);
+    label.userData.genre = genre;
+
+    scene.add(label);
+    genreLabels.push(label);
+  }
+}
+
+export function setGenreLabelVisibility(enabledGenres) {
+  for (const label of genreLabels) {
+    label.visible = enabledGenres.has(label.userData.genre);
+  }
 }
 
 export function setNodeVisibility(visibleIndices) {

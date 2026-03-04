@@ -1,7 +1,7 @@
 // src/auth.js
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || 'YOUR_SPOTIFY_CLIENT_ID';
-const REDIRECT_URI = window.location.origin + window.location.pathname;
-const SCOPES = 'user-library-read';
+const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || window.location.origin;
+const SCOPES = 'user-library-read user-read-private';
 const TOKEN_KEY = 'spotify_access_token';
 const VERIFIER_KEY = 'spotify_code_verifier';
 

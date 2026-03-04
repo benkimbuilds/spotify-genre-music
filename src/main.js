@@ -2,7 +2,7 @@
 import { redirectToSpotifyAuth, handleCallback, getToken } from './auth.js';
 import { loadLibrary } from './api.js';
 import { computeLayout } from './clustering.js';
-import { initScene, renderGraph } from './graph.js';
+import { initScene, renderGraph, renderGenreLabels } from './graph.js';
 import { initGenreFilter } from './ui.js';
 
 const loginScreen = document.getElementById('login-screen');
@@ -10,8 +10,13 @@ const loadingScreen = document.getElementById('loading-screen');
 const loadingStatus = document.getElementById('loading-status');
 const canvas = document.getElementById('canvas');
 const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
 loginBtn.addEventListener('click', redirectToSpotifyAuth);
+logoutBtn.addEventListener('click', () => {
+  sessionStorage.clear();
+  window.location.reload();
+});
 
 async function init() {
   let token = await handleCallback();
@@ -28,14 +33,16 @@ async function init() {
     });
 
     loadingStatus.textContent = 'Computing 3D layout...';
-    const { nodes, edges, genreColorMap } = computeLayout(library);
+    const { nodes, edges, genreColorMap, genreAnchors } = computeLayout(library);
 
     loadingScreen.classList.add('hidden');
     canvas.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
 
     initScene(canvas);
     renderGraph({ nodes, edges });
-    initGenreFilter(nodes, genreColorMap);
+    renderGenreLabels(genreAnchors, genreColorMap);
+    initGenreFilter(nodes, genreColorMap, genreAnchors);
   } catch (err) {
     console.error('Failed to load library:', err);
     loadingStatus.textContent = 'Error loading library. Please refresh and try again.';
