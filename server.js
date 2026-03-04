@@ -147,6 +147,6 @@ app.get('*splat', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Genrexplore server running on port ${PORT}`);
 });
