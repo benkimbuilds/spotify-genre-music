@@ -5,12 +5,16 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const db = new Database(join(__dirname, 'genre-cache.db'));
+const dbPath = process.env.DB_PATH || join(__dirname, 'genre-cache.db');
+const db = new Database(dbPath);
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Serve built frontend in production
+app.use(express.static(join(__dirname, 'dist')));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS genre_cache (
@@ -138,6 +142,11 @@ app.post('/tracks', (req, res) => {
   res.json({ stored: pages.length });
 });
 
+// SPA fallback
+app.get('*splat', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`Genre cache server running on http://127.0.0.1:${PORT}`);
+  console.log(`Genrexplore server running on port ${PORT}`);
 });

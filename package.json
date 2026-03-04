@@ -1,5 +1,5 @@
 {
-  "name": "music",
+  "name": "genrexplore",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,8 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
     "server": "node server.js",
-    "start": "node server.js & vite",
+    "start:dev": "node server.js & vite",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

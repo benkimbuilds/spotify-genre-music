@@ -113,7 +113,7 @@ export async function fetchArtists(token, artistIds) {
   return artists;
 }
 
-const CACHE_SERVER = import.meta.env.VITE_CACHE_SERVER || 'http://127.0.0.1:3001';
+const CACHE_SERVER = import.meta.env.VITE_CACHE_SERVER || (import.meta.env.PROD ? '' : 'http://127.0.0.1:3001');
 
 async function getCachedGenresBatch(artistNames) {
   try {
