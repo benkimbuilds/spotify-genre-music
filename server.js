@@ -34,6 +34,14 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS visits (
+    user_id TEXT PRIMARY KEY,
+    first_seen INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL
+  )
+`);
+
 const GENRE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 const TRACKS_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week
 
@@ -140,6 +148,30 @@ app.post('/tracks', (req, res) => {
   });
   storeMany(pages);
   res.json({ stored: pages.length });
+});
+
+// --- Visits ---
+
+const upsertVisitStmt = db.prepare(`
+  INSERT INTO visits (user_id, first_seen, last_seen) VALUES (?, ?, ?)
+  ON CONFLICT(user_id) DO UPDATE SET last_seen = excluded.last_seen
+`);
+const countVisitsStmt = db.prepare('SELECT COUNT(*) as count FROM visits');
+
+// POST /visit - record a unique visitor
+app.post('/visit', (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ error: 'user_id required' });
+  const now = Date.now();
+  upsertVisitStmt.run(user_id, now, now);
+  const { count } = countVisitsStmt.get();
+  res.json({ count });
+});
+
+// GET /visits/count - get total unique visitors
+app.get('/visits/count', (_req, res) => {
+  const { count } = countVisitsStmt.get();
+  res.json({ count });
 });
 
 // SPA fallback

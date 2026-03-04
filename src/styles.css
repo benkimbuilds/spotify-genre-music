@@ -248,3 +248,12 @@ body {
   transition: color 0.2s, border-color 0.2s;
 }
 #logout-btn:hover { color: #fff; border-color: #666; }
+
+#visit-count {
+  position: fixed;
+  bottom: 20px;
+  right: 100px;
+  color: #555;
+  font-size: 12px;
+  z-index: 50;
+}

@@ -5,12 +5,15 @@ import { computeLayout } from './clustering.js';
 import { initScene, renderGraph, renderGenreLabels } from './graph.js';
 import { initGenreFilter } from './ui.js';
 
+const CACHE_SERVER = import.meta.env.VITE_CACHE_SERVER || (import.meta.env.PROD ? '' : 'http://127.0.0.1:3001');
+
 const loginScreen = document.getElementById('login-screen');
 const loadingScreen = document.getElementById('loading-screen');
 const loadingStatus = document.getElementById('loading-status');
 const canvas = document.getElementById('canvas');
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const visitCount = document.getElementById('visit-count');
 
 loginBtn.addEventListener('click', redirectToSpotifyAuth);
 logoutBtn.addEventListener('click', () => {
@@ -26,6 +29,22 @@ async function init() {
 
   loginScreen.classList.add('hidden');
   loadingScreen.classList.remove('hidden');
+
+  // Record visit and show count
+  try {
+    const me = await fetch('https://api.spotify.com/v1/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json());
+    const res = await fetch(`${CACHE_SERVER}/visit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: me.id }),
+    }).then(r => r.json());
+    if (res.count) {
+      visitCount.textContent = `${res.count} explorers`;
+      visitCount.classList.remove('hidden');
+    }
+  } catch {}
 
   try {
     const library = await loadLibrary(token, (msg) => {
