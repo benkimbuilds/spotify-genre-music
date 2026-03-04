@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Library Visualizer</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="login-screen">
+      <h1>Music Library Visualizer</h1>
+      <p>Connect your Spotify account to explore your library in 3D</p>
+      <button id="login-btn">Connect Spotify</button>
+    </div>
+    <div id="loading-screen" class="hidden">
+      <div class="spinner"></div>
+      <p id="loading-status">Loading your library...</p>
+    </div>
+    <canvas id="canvas" class="hidden"></canvas>
+    <div id="tooltip" class="hidden"></div>
+    <div id="genre-panel" class="hidden">
+      <h3>Genres</h3>
+      <div id="genre-list"></div>
+    </div>
+    <div id="track-detail" class="hidden">
+      <img id="detail-art" />
+      <div id="detail-info">
+        <p id="detail-name"></p>
+        <p id="detail-artist"></p>
+        <p id="detail-album"></p>
+      </div>
+      <button id="detail-close">&times;</button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
